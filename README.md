@@ -1,0 +1,2 @@
+# DingusBot
+Successor to MirandaCosgroveBot

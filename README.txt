@@ -21,7 +21,7 @@ This is the format for all available commands:
 !givePermission <command name>
 
 ********************************************************************************************************************************
-                                                 RUNNING GETRICHTWITCH
+                                                 RUNNING DINGUSBOT
 
 ********************************************************************************************************************************
 If you are on windows use the "ruuuuun.bat" to install and run the bot for you (must install node.js first).
@@ -56,8 +56,8 @@ You should probably only change the channels list unless you are a power user an
 FORMAT FOR CONNECTION SETTINGS:
 {
     "identity": {
-        "username": "MirandaCosgroveBot",
-        "password": "oauth:l8ec68snfdwehzsug2ekcoaza7hvkn"
+        "username": "Bot_Username",
+        "password": "oauth:<key>"
     },
     "channels": [
         "Channel1",

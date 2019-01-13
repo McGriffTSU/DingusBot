@@ -1,4 +1,5 @@
 
+
 const tmi = require('tmi.js');
 const haikudos = require('haikudos');
 const getVideoId = require('get-video-id');
@@ -11,7 +12,7 @@ const fetchVideoInfo = require('youtube-info');
 let datetime = new Date();
 
 //channel variables
-let currUsers = [ 'DingusBot' ];
+let currUsers = [ 'MirandaCosgroveBot' ];
 let userData = [];
 
 let black_list = {users: [], songID: []};
@@ -39,8 +40,10 @@ let opts = {
 };
 
 // These are the commands the bot knows (defined below):
-let knownCommands = { echo, haiku, doom, givepts, slap, coinflip, hug, showchats, showhugs, discipline, gamble, purge, commands,
-    clear, showpts, trade, stats, requestsong, allowrequests, blockrequests, shopMenu, buyCommand, blacklist, givePermission}; //add new commands to this list
+let knownCommands = { echo, haiku, doom, givepts, takepts, slap, coinflip, hug, showchats, showhugs, discipline, gamble, purge, commands,
+    clear, showpts, trade, stats, requestsong, allowrequests, blockrequests, shopMenu, buyCommand, blacklist}; //add new commands to this list
+
+let purchasedCommands = {haiku, slap, requestsong};
 
 let client;
 
@@ -50,6 +53,10 @@ function bootLoader()
 {
     exitListen();
     readUserData();
+}
+// Connect to Twitch:
+function connectIRC(){
+    client.connect()
 }
 
 function readUserData()
@@ -207,7 +214,6 @@ function onMessageHandler (target, context, msg, self) {
         if (userData[i].userName == viewer) {
             userData[i].chats += 1;
             userData[i].points += 1;
-            console.log(viewer + " is already in array");
             not_found = false;
             break;
         }
@@ -336,7 +342,21 @@ function showhugs(target, context) {
 //Function called when the "discipline command is issued:
 //Function created by Eric Ross
 function discipline(target, context, disciplinee) {
-
+    if(context['mod'] === true || badge === "broadcaster/1") {
+        let i = 0;
+        while (i < userData.length) {
+            if (userData[i].userName.toUpperCase() === disciplinee.toUpperCase()) {
+                userData[i].disciplines += 1;
+                if(userData[i].disciplines > 9)
+                {
+                    userData[i].disciplines = 0;
+                    client.say(target, "/timeout " + userData[i].userName + " 600 discipline_overflow");
+                }
+            }
+            }
+    }
+    else
+        client.say(target, "Discipline command is moderator only");
 }
 
 
@@ -427,14 +447,24 @@ function coinflip(target, context) {
 // Function called when the "slap" command is issued:
 // Function created by lts25
 function slap(target, context, slapee) {
-
+    for(var user in userData)
+    {
+        if(user.userName.toUpperCase() === context.username.toUpperCase())
+        {
+            for(let command in user.purchases)
+            {
+                if(command.toUpperCase() === 'slap'.toUpperCase())
+                {
+                    client.say(target, slapee + " has been publicly disrespected.");
+                }
+            }
+        }
+    }
 }
 
 //Function called when the "doom" command is issued:
 //function created by wcj1
 function doom(target, context, params) {
-    var thing = (context);
-
     if(params.length)
         var msg = params.join(' ');
 
@@ -444,24 +474,57 @@ function doom(target, context, params) {
 
 //Function called when "givepts" command is issued:
 //Function created by wcj1
-function givepts(target, context) {
+function givepts(target, context, parameters) {
+    let badge = context['badges-raw'].split(",")[0];
+    if(context['mod'] === true || badge === "broadcaster/1") {
+        let viewer = parameters[0];
+        let points = parameters[1];
+        var i = 0;
+        while (i < userData.length) {
+            if (userData[i].userName.toUpperCase() === viewer.toUpperCase()) {
+                userData[i].points += Number(points);
+                console.log(userData[i]);
+                sendMessage(target, context, context.username + ' got ' + points + ' points. YAY!');
+                break;
+            }
+            i++;
 
-    var viewer = context.username;
-    //console.log(viewer);
-    var pts = Math.floor((Math.random()+1 ) * 100);
-
-    var i = 0;
-    while (i < userData.length) {
-        if (userData[i].userName == viewer) {
-            userData[i].points += pts;
-            console.log(viewer + " is already in array");
-            console.log(userData[i]);
-            break;
         }
-        i++;
+    }
+    else
+    {
+        client.say(target, "givepts command is moderator only")
     }
 
-    sendMessage(target, context, context.username + ' got ' + pts + ' points. YAY!');
+}
+
+function takepts(target, context, parameters) {
+    let badge = context['badges-raw'].split(",")[0];
+    if(context['mod'] === true || badge === "broadcaster/1") {
+        let viewer = parameters[0];
+        let points = parameters[1];
+
+        var i = 0;
+        while (i < userData.length) {
+            if (userData[i].userName.toUpperCase() === viewer.toUpperCase()) {
+                if(userData[i].points > points)
+                    userData[i].points -= Number(points);
+                else
+                    userData[i].points = 0;
+                console.log(viewer + " is already in array");
+                console.log(userData[i]);
+                sendMessage(target, context, context.username + ' has lost ' + points + ' points.');
+                break;
+            }
+            i++;
+
+        }
+    }
+    else
+    {
+        client.say(target, "givepts command is moderator only")
+    }
+
 }
 
 //Function called when "showpts" command is issued:
@@ -500,7 +563,7 @@ function trade(target, context) {
                     userData[i].points -= 50;
                     userData[i].coins += 5;
                 }
-                else if(userData[i].points >= 10) {
+                else{
                     userData[i].points -= 10;
                     userData[i].coins += 1;
                 }
@@ -553,7 +616,7 @@ function clear(target, context)
 {
     let badge = context['badges-raw'].split(",")[0];
     if(context['mod'] === true || badge === "broadcaster/1") {
-        client.say(target, "/clear")
+        client.say(target, "/clear");
         client.say(target, "Alright ya'll gettin' a little too nasty.")
     }
     else
@@ -997,6 +1060,9 @@ function playlistItemsDelete(auth, requestData) {
 
 /**
  * Block target song or user from requesting songs
+ *
+ * Implementation is not efficient... checks both halves of blacklist when we only have to check one half and have the
+ * data to know which half - need to fix
  * @param target
  * @param context
  * @param parameters
@@ -1105,7 +1171,7 @@ function shopMenu(target)
 
     client.say(target, "***WELCOME TO THE FUNCTION SHOP MENU***");
     client.say(target, "SPECIAL FUNCTIONS 5 COINS EACH: ");
-    for(var commandName in knownCommands)
+    for(var commandName in purchasedCommands)
         cmdStrings[cmdStrings.length] = ",-!" + commandName.toString() + " ";
     let finalstring = '';
     for(i = 0; i < cmdStrings.length; i++)
@@ -1125,12 +1191,12 @@ function buyCommand(target, context, commandToBuy)
             if (userData[i].userName === viewer) {
                 if (userData.coins >= 5) {
                     userData.coins -= 5;
-                    client.say(target, "WOW! You bought the " + commandToBuy + " command. Are you happy with yourself now?");
-                    givePermission(target, context, commandToBuy);
+                    client.say(target, "WOW! You bought the " + commandToBuy + " command. Did shopping fill the hole inside you?");
+                    userData[i].purchases.push(commandToBuy);
                     break;
                 }
                 else {
-                    client.say(target, "Haha you don't have enough coins to buy that command ya dingus)")
+                    client.say(target, "You don't have enough coins to buy that command ya dingus)");
                     break;
                 }
             }
@@ -1141,7 +1207,3 @@ function buyCommand(target, context, commandToBuy)
         client.say(target, "You did not enter a correct command name. Use !shopMenu to see them available commands.")
 }
 
-function givePermission(target, context, commandToBuy)
-{
-
-}

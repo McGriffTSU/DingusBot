@@ -1,14 +1,14 @@
 [
   {
     "userName": "MirandaCosgroveBot",
-    "points": "9999999",
-    "coins": "9999999",
-    "hugs": "999999",
-    "disciplines": "0",
+    "points": 9999999,
+    "coins": 9999999,
+    "hugs": 999999,
+    "disciplines": 0,
     "purchases": [
       "slap"
     ],
-    "chats": "999999"
+    "chats": 999999
   },
   {
     "userName": "griffster",
@@ -17,11 +17,11 @@
     "hugs": 0,
     "disciplines": 0,
     "purchases": [],
-    "chats": 0
+    "chats": 5
   },
   {
     "userName": "dingusrobotnus",
-    "points": 3,
+    "points": 300,
     "coins": 18,
     "hugs": 0,
     "disciplines": 0,

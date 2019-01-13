@@ -1,11 +1,3 @@
-/*
-TO DO LIST (Michael):   Rebuild slap and discipline commands to work with new data structures
-                        Make givepts targeted and mod only
-                        Add new features to subscription event handler
-                        Rebuild function shop purchases to update for new data structures
-                        Java GUI settings menu
- */
-
 
 const tmi = require('tmi.js');
 const haikudos = require('haikudos');
@@ -19,7 +11,7 @@ const fetchVideoInfo = require('youtube-info');
 let datetime = new Date();
 
 //channel variables
-let currUsers = [ 'MirandaCosgroveBot' ];
+let currUsers = [ 'DingusBot' ];
 let userData = [];
 
 let black_list = {users: [], songID: []};
@@ -59,10 +51,6 @@ function bootLoader()
     exitListen();
     readUserData();
 }
-// Connect to Twitch:
-function connectIRC(){
-    client.connect()
-}
 
 function readUserData()
 {
@@ -100,14 +88,14 @@ function readUserData()
        if(err)
        {
            console.log(err);
-           console.log("Error reading settings, defaulting to test channel (MirandaCosgroveBot)");
+           console.log("Error reading settings, defaulting to test channel (DingusRobotnus)");
            opts = {
-               identity: {
-                   username: "MirandaCosgroveBot",
-                   password: "oauth:l8ec68snfdwehzsug2ekcoaza7hvkn"
+               "identity": {
+                   "username": "DingusRobotnus",
+                   "password": "oauth:wg9ob3qiubygap9xbnxie3mo5wz7kk"
                },
-               channels: [
-                   "MirandaCosgroveBot"
+               "channels": [
+                   "DingusRobotnus"
                ]
            };
            //Start client through TMI using login from settings file

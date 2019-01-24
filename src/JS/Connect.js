@@ -11,20 +11,19 @@ const fetchVideoInfo = require('youtube-info');
 
 let datetime = new Date();
 
-//channel variables
-let currUsers = [ 'MirandaCosgroveBot' ];
-let userData = [];
-
+//channel letiables
+let currUsers = [ 'DingusRobotnus' ];
+let userData =  {};
 let black_list = {users: [], songID: []};
-var session_playlist_id = ''; //Holds playlist ID for this session
+let session_playlist_id = ''; //Holds playlist ID for this session
 let VIDEO_ALLOWED;
 
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/google-apis-nodejs-quickstart.json
-var SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl'];
-var TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
+let SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl'];
+let TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
     process.env.USERPROFILE) + '/.credentials/';
-var TOKEN_PATH = TOKEN_DIR + 'google-apis-nodejs-quickstart.json';
+let TOKEN_PATH = TOKEN_DIR + 'google-apis-nodejs-quickstart.json';
 
 // Valid commands start with:
 let commandPrefix;
@@ -43,7 +42,7 @@ let opts = {
 let knownCommands = { echo, haiku, doom, givepts, takepts, slap, coinflip, hug, showchats, showhugs, discipline, gamble, purge, commands,
     clear, showpts, trade, stats, requestsong, allowrequests, blockrequests, shopMenu, buyCommand, blacklist}; //add new commands to this list
 
-let purchasedCommands = {haiku, slap, requestsong};
+let purchasedCommands = {haiku, slap};
 
 let client;
 
@@ -53,10 +52,6 @@ function bootLoader()
 {
     exitListen();
     readUserData();
-}
-// Connect to Twitch:
-function connectIRC(){
-    client.connect()
 }
 
 function readUserData()
@@ -161,7 +156,7 @@ function readUserData()
 
 function exitListen()
 {
-    var stdin = process.openStdin();
+    let stdin = process.openStdin();
     stdin.addListener("data", function (d) {
         // note:  d is an object, and when converted to a string it will
         // end with a linefeed.  so we (rather crudely) account for that
@@ -205,22 +200,14 @@ function onMessageHandler (target, context, msg, self) {
         return
     }
 
-    var viewer = context.username;
-    //console.log(viewer);
-    
-    var i = 0;
-    let not_found = true;
-    while (i < userData.length) {
-        if (userData[i].userName == viewer) {
-            userData[i].chats += 1;
-            userData[i].points += 1;
-            not_found = false;
-            break;
-        }
-        i++;
+    let viewer = context.username.toString().toLowerCase();
+
+    if (viewer in userData) {
+        userData[viewer].chats += 1;
+        userData[viewer].points += 1;
     }
-    if(not_found) {
-        userData.push({
+    else{
+        userData[viewer] = {
             userName: viewer,
             points: 1,
             coins: 0,
@@ -228,7 +215,7 @@ function onMessageHandler (target, context, msg, self) {
             disciplines: 0,
             purchases: [],
             chats: 1
-        });
+        };
     }
 
     // Split the message into individual words:
@@ -266,7 +253,7 @@ function onDisconnectedHandler (reason) {
 }
 
 // Function called when the "echo" command is issued:
-// Function created by
+//Echos string into private message - possibly broken by TwitchAPIv5 and needs update? Need to test more first
 function echo (target, context, params) {
     // If there's something to echo:
     if (params.length) {
@@ -280,162 +267,121 @@ function echo (target, context, params) {
 }
 
 // Function called when the "haiku" command is issued:
-// Function created by Eric Ross
-function haiku (target, context) {
-    // Generate a new haiku:
-    haikudos((newHaiku) => {
-        // Split it line-by-line:
-        newHaiku.split('\n').forEach((h) => {
-            // Send each line separately:
-            sendMessage(target, context, h)
-        })
-    })
+// Prints random haiku into chat
+function haiku(target, context) {
+    let viewer = context.username.toString().toLowerCase();
+    if(viewer in userData)
+    {
+        let purch_arr = userData[context.username.toString().toLowerCase()].purchases;
+        for(let key in purch_arr) {
+            if(purch_arr[key] === 'haiku'){
+                // Generate a new haiku:
+                haikudos((newHaiku) => {
+                    // Split it line-by-line:
+                    newHaiku.split('\n').forEach((h) => {
+                        // Send each line separately:
+                        sendMessage(target, context, h)
+                    })
+                })
+            }
+        }
+    }
+
 }
 
 // Function called when the "hug" command is issued:
-//Function created by Eric Ross
+// Adds one hug to target viewer if valid
 function hug(target, context, huggee) {
+    let hugged_viewer = huggee.toString().toLowerCase();
     if(huggee.length < 1)
     {
-        client.say(target, context.username + " You must enter a user to hug in this command.");
+        client.say(target, "@" + context.username + " You must enter a user to hug in this command.");
+        return;
     }
-    var viewer = context.username;
-    //console.log(viewer);
-    var hugs = 1;
-
-    var i = 0;
-    while (i < userData.length) {
-        if (userData[i].userName.toUpperCase() === huggee.toUpperCase()) {
-            userData[i].hugs += hugs;
-            console.log(viewer + " is already in array");
-            sendMessage(target, context, huggee + ' has ' + ' been HUGGED!');
-            return;
-        }
-        i++;
+    else if(hugged_viewer === context.username.toString().toLowerCase())
+    {
+        client.say(target, "@" + context.username + " You can't hug yourself nerd");
     }
-    console.log(huggee + " not found");
-
+    else if (hugged_viewer in userData) {
+        userData[hugged_viewer].hugs += 1;
+        sendMessage(target, context, huggee + ' has ' + ' been HUGGED!');
+    }
 }
 
 
 //Function called when "showhugs" command is issued:
-//Function created by Eric Ross
+//Shows amount of hugs received by
 function showhugs(target, context) {
-    var viewer = context.username;
-
-    var i = 0;
-    while (i < userData.length) {
-        if (userData[i].userName == viewer) {
-            sendMessage(target, context, context.username + ' has ' + userData[i].hugs + ' total  hugs!');
-            //console.log("viewer is in showpts array")
-            break;
-        }
-        else if (i == userData.length) {
-            console.log(viewer + " is not in array");
-            sendMessage(target, context, context.username + ' has no hugs!');
-            break;
-        }
-        i++;
+    let viewer = context.username;
+    if (viewer in userData) {
+        sendMessage(target, context, context.username + ' has ' + userData[viewer].hugs + ' total  hugs!');
+    }
+    else{
+        console.log(viewer + " is not in array");
+        sendMessage(target, context, context.username + ' has no hugs!');
     }
 }
 
-//Function called when the "discipline command is issued:
-//Function created by Eric Ross
+//Adds one discipline to the user, if they reach 10 or more disciplines they will be banned temporarily for 10 minutes
 function discipline(target, context, disciplinee) {
     if(context['mod'] === true || badge === "broadcaster/1") {
-        let i = 0;
-        while (i < userData.length) {
-            if (userData[i].userName.toUpperCase() === disciplinee.toUpperCase()) {
-                userData[i].disciplines += 1;
-                if(userData[i].disciplines > 9)
-                {
-                    userData[i].disciplines = 0;
-                    client.say(target, "/timeout " + userData[i].userName + " 600 discipline_overflow");
-                }
+        let viewer = disciplinee.toString().toLowerCase();
+        if (viewer in userData) {
+            if (userData[viewer].disciplines > 9) {
+                userData[viewer].disciplines = 0;
+                client.say(target, "/timeout " + userData[viewer].userName + " 600 discipline_overflow_punishment");
             }
+            else
+            {
+                userData[viewer].disciplines += 1;
             }
+        }
     }
     else
         client.say(target, "Discipline command is moderator only");
 }
 
 
-//Function called when the "showchats" command is used
-//Function created by Eric Ross
+//Shows amount of times user has chatted in the channel
 function showchats(target, context) {
-    var viewer = context.username;
+    let viewer = context.username.toString().toLowerCase();
 
-    var i = 0;
-    while (i < userData.length) {
-        if (userData[i].userName == viewer) {
-            sendMessage(target, context, context.username + ' has chatted ' + userData[i].chats + ' times!');
-            console.log("viewer is in hugs array")
-            break;
-        }
-        else if (i == userData.length) {
-            console.log(viewer + " is not in array");
-            sendMessage(target, context, context.username + ' has not chatted!');
-            break;
-        }
-        i++;
-    }    
+    if(viewer in userData)
+    {
+        sendMessage(target, context, context.username + ' has chatted ' + userData[viewer].chats + ' times!');
+    }
 }
 
 // Function called when the "gamble" command is issued:
-// Function created by JoelMartinez0404
-function gamble(target, context, params) {
-    var coin = Math.floor(Math.random() * 2);
-    var viewer = context.username;
+// Flips a coin, win or lose the amount of points the viewer chooses
+function gamble(target, context, stake) {
+    let bet = parseInt(stake, 10);
+    if(isNaN(bet) || !(bet > 0))
+        return;
 
-    var i = 0;
-    while (i < userData.length) {
-        if (userData[i].userName == viewer) {
-            console.log("user is already in array")
-            if (params.length)
-                var msg = params.join(' ');
+    let coin = Math.floor(Math.random() * 2);
+    let viewer = context.username.toLowerCase();
 
-            if (coin == 0)
-                coin = 'tails';
-            else
-                coin = 'heads';
-
-            if (userData[i].coins >= 10) {
-                userData[i].coins -= 10;
-
-                // Prints gamble messages;
-                if (msg != 'tails' && msg != 'heads') {
-                    sendMessage(target, context, 'You did not enter either tails or heads loser...smh.');
-                    break;
-                }
-                else if (coin == 'tails' && coin == msg) {
-                    sendMessage(target, context, 'You bet on Tails and you won the bet (somehow). You won 20 coins');
-                    userData[i].coins += 30;
-                }
-                else if (coin == 'heads' && coin == msg) {
-                    sendMessage(target, context, 'You bet on Heads and you won the bet (somehow). You won 20 coins');
-                    userData[i].coins += 30;
-                }
-                else if (coin == 'tails' && coin != msg) {
-                    sendMessage(target, context, 'You bet on Heads and you lost the bet. You lost 10 coins..boohoo');
-                }
-                else if (coin == 'heads' && coin != msg) {
-                    sendMessage(target, context, 'You bet on Tails and you lost the bet. You lost 10 coins..boohoo');
-                }
-            }
-            else if (userData[i].coins < 10) {
-                sendMessage(target, context, 'You need at least 10 coins to gamble with.')
-            }
-
-            break;
+    if(coin > 1)
+    {
+        if(viewer in userData)
+        {
+            userData[viewer].points += bet;
         }
-        i++;
+    }
+    else
+    {
+        if(viewer in userData)
+        {
+            userData[viewer].points -= bet;
+        }
     }
 }
 
 // Function called when the "coinflip" command is issued:
-// Function created by lts25
+// Flips a coin and returns side landed on - not connected to user points just for indecisive people on yes/no questions
 function coinflip(target, context) {
-    var coin = Math.floor(Math.random() * 2);
+    let coin = Math.floor(Math.random() * 2);
 
     // Print coin;
     if (coin == 0)
@@ -445,79 +391,56 @@ function coinflip(target, context) {
 }
 
 // Function called when the "slap" command is issued:
-// Function created by lts25
+// Purchased command - slaps target viewer if valid
 function slap(target, context, slapee) {
-    for(var user in userData)
+    let viewer = slapee.toString().toLowerCase();
+    if(viewer in userData)
     {
-        if(user.userName.toUpperCase() === context.username.toUpperCase())
-        {
-            for(let command in user.purchases)
-            {
-                if(command.toUpperCase() === 'slap'.toUpperCase())
-                {
-                    client.say(target, slapee + " has been publicly disrespected.");
-                }
+        let purch_arr = userData[context.username.toString().toLowerCase()].purchases;
+        for(let key in purch_arr) {
+            if(purch_arr[key] === 'slap'){
+                client.say(target, "@" + slapee + " has been publicly disrespected by the backhand of @" + context.username);
             }
         }
     }
 }
 
 //Function called when the "doom" command is issued:
-//function created by wcj1
+//takes one or more strings as input, prints goofy message about how Doom runs on anything
 function doom(target, context, params) {
-    if(params.length)
-        var msg = params.join(' ');
-
-    //Prints return message
-    sendMessage(target, context, 'Yes, Doom will run on anything, even on a ' + msg );
+    if(params.length) {
+        let msg = params.toString().replace(/,/g, ' ');
+        sendMessage(target, context, 'Yes, Doom will run on anything, even on a ' + msg);
+    }
 }
 
 //Function called when "givepts" command is issued:
-//Function created by wcj1
+//Mod only command - gives points to viewer specified if viewer
 function givepts(target, context, parameters) {
     let badge = context['badges-raw'].split(",")[0];
     if(context['mod'] === true || badge === "broadcaster/1") {
-        let viewer = parameters[0];
-        let points = parameters[1];
-        var i = 0;
-        while (i < userData.length) {
-            if (userData[i].userName.toUpperCase() === viewer.toUpperCase()) {
-                userData[i].points += Number(points);
-                console.log(userData[i]);
-                sendMessage(target, context, context.username + ' got ' + points + ' points. YAY!');
-                break;
-            }
-            i++;
-
+        let viewer = parameters[0].toString().toLowerCase();
+        let points = parseInt(parameters[1], 10);
+        if (viewer in userData) {
+            userData[viewer].points += points;
+            sendMessage(target, context, context.username + ' got ' + points + ' points. Welfare queen.');
         }
     }
     else
     {
         client.say(target, "givepts command is moderator only")
     }
-
 }
 
+//Moderator only command - removes points from user specified if it is valid
 function takepts(target, context, parameters) {
     let badge = context['badges-raw'].split(",")[0];
     if(context['mod'] === true || badge === "broadcaster/1") {
-        let viewer = parameters[0];
-        let points = parameters[1];
-
-        var i = 0;
-        while (i < userData.length) {
-            if (userData[i].userName.toUpperCase() === viewer.toUpperCase()) {
-                if(userData[i].points > points)
-                    userData[i].points -= Number(points);
-                else
-                    userData[i].points = 0;
-                console.log(viewer + " is already in array");
-                console.log(userData[i]);
-                sendMessage(target, context, context.username + ' has lost ' + points + ' points.');
-                break;
-            }
-            i++;
-
+        let viewer = parameters[0].toString().toLowerCase();
+        let points = parseInt(parameters[1], 10);
+        if (viewer in userData) {
+            userData[viewer].points -= points;
+            sendMessage(target, context, context.username + ' was penalized ' + points + ' points.');
         }
     }
     else
@@ -528,55 +451,29 @@ function takepts(target, context, parameters) {
 }
 
 //Function called when "showpts" command is issued:
-//Function created by wcj1
+//Shows current amount of points for user that calls command
 function showpts(target, context) {
-    var viewer = context.username;
+    let viewer = context.username.toLowerCase();
 
-    var i = 0;
-    while (i < userData.length) {
-        if (userData[i].userName == viewer) {
-            sendMessage(target, context, context.username + ' has ' + userData[i].points + ' total  points!');
-            console.log("viewer is in showpts array");
-            return;
-        }
-        i++;
+    if(viewer in userData)
+    {
+        client.say(target, "@" + viewer + " You have " + userData[viewer].points + " points and " + userData[viewer].coins + " coins");
     }
-    console.log(viewer + " is not in array");
-    sendMessage(target, context, context.username + ' has no points!');
+    else
+        sendMessage(target, context, context.username + ' has no points!');
 
 }
 
 //Function called when "trade" command is issued:
-//Function created by wcj1
+//Trades points for coins
 function trade(target, context) {
-    var viewer = context.username;
-
-    var i = 0;
-    while (i < userData.length) {
-        if (userData[i].userName == viewer) {
-            while(userData[i].points >= 10) {
-                if(userData[i].points >= 100) {
-                    userData[i].points -= 100;
-                    userData[i].coins += 10;
-                }
-                else if(userData[i].points >= 50) {
-                    userData[i].points -= 50;
-                    userData[i].coins += 5;
-                }
-                else{
-                    userData[i].points -= 10;
-                    userData[i].coins += 1;
-                }
-            }
-            sendMessage(target, context, context.username + ' has ' + userData[i].points + ' total  points and ' + userData[i].coins + ' total coins now!');
-            break;
-        }
-        else if (i == userData.length) {
-            console.log(viewer + " is not in array");
-            sendMessage(target, context, context.username + ' has no points!');
-            break;
-        }
-        i++;
+    let viewer = context.username.toString().toLowerCase();
+    if(viewer in userData)
+    {
+        let coinbuy = Math.floor(userData[viewer].points/10);
+        let remainpts = userData[viewer].points%10;
+        userData[viewer].coins += coinbuy;
+        userData[viewer].points = remainpts;
     }
 }
 
@@ -604,14 +501,8 @@ function purge(target, context, purgedUser)
     {
         client.say(target, context['display-name'] + " your magic holds no power here.")
     }
-
-    if(context['user-id'] === '194986251')
-    {
-        console.log("What did the Leprechaun say to the bald guy?");
-        console.log("Ah damn Griff's here shut up");
-    }
 }
-
+//Clears chat, basically a shameless macro for /clear to test moderator permissions check
 function clear(target, context)
 {
     let badge = context['badges-raw'].split(",")[0];
@@ -624,12 +515,12 @@ function clear(target, context)
         client.say(target, "You do not have access to this command because your clothes are out of style.");
     }
 }
-
+//Prints all known commands as a string into chat
 function commands(target, context)
 {
-    var cmdStrings = [];
+    let cmdStrings = [];
 
-    for(var commandName in knownCommands)
+    for(let commandName in knownCommands)
         cmdStrings[cmdStrings.length] = " " + commandPrefix + commandName.toString() + " ";
 
     client.say(target, "@" + context.username + " Commands known:" + cmdStrings);
@@ -643,8 +534,6 @@ function commands(target, context)
  //  */
 
 function requestsong(target, context, videoID) {
-    var viewer = context.username;
-    var i = 0;
     if(VIDEO_ALLOWED === true) {
         if(session_playlist_id == '') //If playlist ID is empty, create new playlist to enter playlist item
         {
@@ -737,7 +626,7 @@ function requestsong(target, context, videoID) {
 }
 
 /**
- *Turns on song request functionality for all users, only usable by moderators
+ *Turns on song request functionality for all users, only usable by moderators, also creates a playlist
  */
 function allowrequests(target, context)
 {
@@ -850,8 +739,8 @@ function blockrequests(target, context)
  * Also sets session playlist ID
  */
 function playlistsInsert(auth, requestData) {
-    var service = google.youtube('v3');
-    var parameters = removeEmptyParameters(requestData['params']);
+    let service = google.youtube('v3');
+    let parameters = removeEmptyParameters(requestData['params']);
     parameters['auth'] = auth;
     parameters['resource'] = createResource(requestData['properties']);
     service.playlists.insert(parameters, function(err, response) {
@@ -875,10 +764,10 @@ function playlistsInsert(auth, requestData) {
  * given callback function.
  */
 function authorize(credentials, requestData, callback) {
-    var clientSecret = credentials.installed.client_secret;
-    var clientId = credentials.installed.client_id;
-    var redirectUrl = credentials.installed.redirect_uris[0];
-    var oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUrl);
+    let clientSecret = credentials.installed.client_secret;
+    let clientId = credentials.installed.client_id;
+    let redirectUrl = credentials.installed.redirect_uris[0];
+    let oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUrl);
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, function(err, token) {
         if (err) {
@@ -896,12 +785,12 @@ function authorize(credentials, requestData, callback) {
  * execute the given callback with the authorized OAuth2 client.
  */
 function getNewToken(oauth2Client) {
-    var authUrl = oauth2Client.generateAuthUrl({
+    let authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES
     });t
     console.log('Authorize this app by visiting this url: ', authUrl);
-    var rl = readline.createInterface({
+    let rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
     });
@@ -938,7 +827,7 @@ function storeToken(token) {
  * Remove parameters that do not have values.
  */
 function removeEmptyParameters(params) {
-    for (var p in params) {
+    for (let p in params) {
         if (!params[p] || params[p] == 'undefined') {
             delete params[p];
         }
@@ -951,25 +840,25 @@ function removeEmptyParameters(params) {
  * properties and their values.
  */
 function createResource(properties) {
-    var resource = {};
-    var normalizedProps = properties;
-    for (var p in properties) {
-        var value = properties[p];
+    let resource = {};
+    let normalizedProps = properties;
+    for (let p in properties) {
+        let value = properties[p];
         if (p && p.substr(-2, 2) == '[]') {
-            var adjustedName = p.replace('[]', '');
+            let adjustedName = p.replace('[]', '');
             if (value) {
                 normalizedProps[adjustedName] = value.split(',');
             }
             delete normalizedProps[p];
         }
     }
-    for (var p in normalizedProps) {
+    for (let p in normalizedProps) {
         // Leave properties that don't have values out of inserted resource.
         if (normalizedProps.hasOwnProperty(p) && normalizedProps[p]) {
-            var propArray = p.split('.');
-            var ref = resource;
-            for (var pa = 0; pa < propArray.length; pa++) {
-                var key = propArray[pa];
+            let propArray = p.split('.');
+            let ref = resource;
+            for (let pa = 0; pa < propArray.length; pa++) {
+                let key = propArray[pa];
                 if (pa == propArray.length - 1) {
                     ref[key] = normalizedProps[p];
                 } else {
@@ -981,6 +870,7 @@ function createResource(properties) {
     return resource;
 }
 
+//Shows user statistics - definitely needs some new stuff to jazz it up
 function stats(target, context) {
     client.say(target, context['display-name'] + " Here's your status");
     if (context['mod'] === true) {
@@ -996,8 +886,8 @@ function stats(target, context) {
  * Insert playlist item into playlist, both given in requestData from calling function
  */
 function playlistItemsInsert(auth, requestData) {
-    var service = google.youtube('v3');
-    var parameters = removeEmptyParameters(requestData['params']);
+    let service = google.youtube('v3');
+    let parameters = removeEmptyParameters(requestData['params']);
     parameters['auth'] = auth;
     parameters['resource'] = createResource(requestData['properties']);
     service.playlistItems.insert(parameters, function(err, response) {
@@ -1046,8 +936,8 @@ function playlistItemInsertNow(id, target)
 }
 
 function playlistItemsDelete(auth, requestData) {
-    var service = google.youtube('v3');
-    var parameters = removeEmptyParameters(requestData['params']);
+    let service = google.youtube('v3');
+    let parameters = removeEmptyParameters(requestData['params']);
     parameters['auth'] = auth;
     service.playlistItems.delete(parameters, function(err, response) {
         if (err) {
@@ -1149,10 +1039,10 @@ function initAuth() {
             return;
         }
         credentials = JSON.parse(content);
-        var clientSecret = credentials.installed.client_secret;
-        var clientId = credentials.installed.client_id;
-        var redirectUrl = credentials.installed.redirect_uris[0];
-        var oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUrl);
+        let clientSecret = credentials.installed.client_secret;
+        let clientId = credentials.installed.client_id;
+        let redirectUrl = credentials.installed.redirect_uris[0];
+        let oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUrl);
         // Check if we have previously stored a token.
         fs.readFile(TOKEN_PATH, function(err, token) {
             if (err) {
@@ -1167,43 +1057,32 @@ function initAuth() {
 
 function shopMenu(target)
 {
-    var cmdStrings = [];
-
+    let finalstring = 'SPECIAL FUNCTIONS 5 COINS EACH: ';
     client.say(target, "***WELCOME TO THE FUNCTION SHOP MENU***");
-    client.say(target, "SPECIAL FUNCTIONS 5 COINS EACH: ");
-    for(var commandName in purchasedCommands)
-        cmdStrings[cmdStrings.length] = ",-!" + commandName.toString() + " ";
-    let finalstring = '';
-    for(i = 0; i < cmdStrings.length; i++)
-        finalstring += cmdStrings[i];
-
+    for(let commandName in purchasedCommands)
+        finalstring += "!" + commandName.toString() + ", ";
     client.say(target, finalstring);
 }
-
+//Adds command to viewer's purchased command permissions if they have the coins necessary
 function buyCommand(target, context, commandToBuy)
 {
-    // If the command is known, let's execute it:
-    if (commandToBuy in knownCommands){
-        var viewer = context.username;
-
-        var i = 0;
-        while(i < userData.length) {
-            if (userData[i].userName === viewer) {
-                if (userData.coins >= 5) {
-                    userData.coins -= 5;
-                    client.say(target, "WOW! You bought the " + commandToBuy + " command. Did shopping fill the hole inside you?");
-                    userData[i].purchases.push(commandToBuy);
-                    break;
-                }
-                else {
-                    client.say(target, "You don't have enough coins to buy that command ya dingus)");
-                    break;
-                }
+    let command_name = commandToBuy.toString().toLowerCase();
+    if (command_name in purchasedCommands){
+        let viewer = context.username.toLowerCase();
+        if(viewer in userData)
+        {
+            if(userData[viewer].coins > 10)
+            {
+                userData[viewer].coins -= 10;
+                userData[viewer].purchases.push(command_name);
             }
-            i++;
+            else
+            {
+                client.say(target, "@" + viewer + " Not enough coins, try !trade to exchange points");
+            }
         }
     }
     else
-        client.say(target, "You did not enter a correct command name. Use !shopMenu to see them available commands.")
+        client.say(target, "You did not enter a correct command name. Use !shopMenu to see them available commands.");
 }
 

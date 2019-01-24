@@ -1,31 +1,23 @@
-[
-  {
-    "userName": "MirandaCosgroveBot",
-    "points": 9999999,
-    "coins": 9999999,
-    "hugs": 999999,
+{
+  "griffster": {
+    "userName": "griffster",
+    "points": 4,
+    "coins": 12,
+    "hugs": 1,
     "disciplines": 0,
     "purchases": [
-      "slap"
+      "slap",
+      "haiku"
     ],
-    "chats": 999999
+    "chats": 42
   },
-  {
-    "userName": "griffster",
-    "points": 182,
+  "mirandacosgrovebot": {
+    "userName": "mirandacosgrovebot",
+    "points": 2,
     "coins": 0,
     "hugs": 0,
     "disciplines": 0,
     "purchases": [],
-    "chats": 5
-  },
-  {
-    "userName": "dingusrobotnus",
-    "points": 300,
-    "coins": 18,
-    "hugs": 0,
-    "disciplines": 0,
-    "purchases": [],
-    "chats": 7
+    "chats": 2
   }
-]
+}

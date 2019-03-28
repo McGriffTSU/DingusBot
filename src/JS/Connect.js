@@ -11,7 +11,7 @@ const fetchVideoInfo = require('youtube-info');
 
 let datetime = new Date();
 
-//channel letiables
+//channel variables
 let currUsers = [ 'DingusRobotnus' ];
 let userData =  {};
 let black_list = {users: [], songID: []};
@@ -727,12 +727,6 @@ function blockrequests(target, context)
     }
 }
 
-/**
- *Deletes playlist item currently playing
- */
-
-
-
 
 /**
  * Adds a new playlist to insert data into using the requestData to get channel and playlist ID
@@ -1071,7 +1065,7 @@ function buyCommand(target, context, commandToBuy)
         let viewer = context.username.toLowerCase();
         if(viewer in userData)
         {
-            if(userData[viewer].coins > 10)
+            if(userData[viewer].coins >= 10)
             {
                 userData[viewer].coins -= 10;
                 userData[viewer].purchases.push(command_name);
